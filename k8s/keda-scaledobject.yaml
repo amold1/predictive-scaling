@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cpu-demo-predictive
+  namespace: demo
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: cpu-demo
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 60
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: ${PROM_INCLUSTER}
+        metricName: predicted_utilization_cpu_demo
+        query: max(predictor_cpu_forecast{deployment="cpu-demo"})
+        threshold: "${PREDICT_THRESHOLD}"

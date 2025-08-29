@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-demo
+  namespace: demo
+  labels:
+    app: cpu-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-demo
+  template:
+    metadata:
+      labels:
+        app: cpu-demo
+    spec:
+      containers:
+      - name: cpu-demo
+        image: alpine:3.20
+        command: ["/bin/sh","-lc"]
+        args:
+          - |
+            set -eux
+            apk add --no-cache stress-ng
+            exec stress-ng --cpu="2" --cpu-load="85" --cpu-method sqrt --timeout 0 --metrics-brief
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "2000m", memory: "128Mi" }
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-demo
+  namespace: demo
+  labels:
+    app: cpu-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: cpu-demo
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cpu-demo
+  namespace: demo
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: cpu-demo
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 5s

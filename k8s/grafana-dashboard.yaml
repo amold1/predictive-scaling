@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-predictive-autoscaling
+  namespace: monitoring
+  labels:
+    # This label is watched by kube-prometheus-stack's Grafana sidecar
+    grafana_dashboard: "1"
+data:
+  predictive-autoscaling.json: |
+    {
+      "__inputs": [
+        {
+          "name": "prometheus",
+          "label": "Prometheus",
+          "type": "datasource",
+          "pluginId": "prometheus",
+          "pluginName": "Prometheus"
+        }
+      ],
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Predicted Utilization (forecast)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 0.7 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "predictor_cpu_forecast{deployment=\"cpu-demo\"}",
+              "legendFormat": "forecast",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": { "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "single" }
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 }
+        },
+        {
+          "type": "timeseries",
+          "title": "Actual Utilization Fraction (usage / limit)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"demo\",pod=~\"cpu-demo-.*\",image!=\"\"}[2m])) / sum(kube_pod_container_resource_limits{namespace=\"demo\",resource=\"cpu\",pod=~\"cpu-demo-.*\"})",
+              "legendFormat": "actual",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": { "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "single" }
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 }
+        },
+        {
+          "type": "timeseries",
+          "title": "Replicas (desired vs available)",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+          "targets": [
+            {
+              "expr": "kube_deployment_spec_replicas{namespace=\"demo\",deployment=\"cpu-demo\"}",
+              "legendFormat": "desired",
+              "refId": "A"
+            },
+            {
+              "expr": "kube_deployment_status_replicas_available{namespace=\"demo\",deployment=\"cpu-demo\"}",
+              "legendFormat": "available",
+              "refId": "B"
+            }
+          ],
+          "options": {
+            "legend": { "displayMode": "table", "placement": "bottom" },
+            "tooltip": { "mode": "single" }
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 }
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "style": "dark",
+      "tags": ["predictive", "keda", "autoscaling"],
+      "templating": { "list": [] },
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Predictive Autoscaling — CPU",
+      "uid": "pred-auto-cpu",
+      "version": 1,
+      "weekStart": ""
+    }

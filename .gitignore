@@ -1,0 +1,4 @@
+.env
+.cluster_id
+*kubeconfig.yaml
+k8s/.render/

@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: predictor
+  namespace: demo
+  labels:
+    app: predictor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: predictor
+  template:
+    metadata:
+      labels:
+        app: predictor
+    spec:
+      containers:
+      - name: predictor
+        image: ${PREDICTOR_IMAGE_NAME}:${PREDICTOR_IMAGE_TAG}
+        imagePullPolicy: Always
+        env:
+          - name: PROM_URL
+            value: "${PROM_INCLUSTER}"
+          - name: TARGET_NAMESPACE
+            value: "${TARGET_NAMESPACE}"
+          - name: TARGET_DEPLOYMENT
+            value: "${TARGET_DEPLOYMENT}"
+          - name: LAGS
+            value: "${LAGS}"
+          - name: INTERVAL_SEC
+            value: "${INTERVAL_SEC}"
+        ports:
+          - containerPort: 9000
+            name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: predictor
+  namespace: demo
+  labels:
+    app: predictor
+spec:
+  selector:
+    app: predictor
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: predictor
+  namespace: demo
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: predictor
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 5s

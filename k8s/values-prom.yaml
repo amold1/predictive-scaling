@@ -1,0 +1,5 @@
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    scrapeInterval: 2s
+    evaluationInterval: 2s
